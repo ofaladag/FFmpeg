@@ -69,7 +69,8 @@
 # include "libavfilter/avfilter.h"
 # include "libavfilter/buffersrc.h"
 # include "libavfilter/buffersink.h"
-
+#include <libavutil/motion_vector.h>
+#include <libavformat/avformat.h>
 #if HAVE_SYS_RESOURCE_H
 #include <sys/time.h>
 #include <sys/types.h>
@@ -1376,6 +1377,25 @@ static void do_video_out(OutputFile *of,
             }
 
             frame_size = pkt.size;
+            int i;
+			AVFrameSideData *sd;
+
+			sd = av_frame_get_side_data(next_picture,
+					AV_FRAME_DATA_MOTION_VECTORS);
+			if (sd) {
+				const AVMotionVector *mvs = (const AVMotionVector*) sd->data;
+				printf("\n\n mv count: %d\n\n", sd->size / sizeof(*mvs));
+				AVDictionary *d = NULL;
+				int metadata_len;
+				char *packed_metadata = NULL;
+				char mvCountStr[10];
+				sprintf(mvCountStr, "%d", sd->size / sizeof(*mvs));
+				av_dict_set(&d, "ofa", mvCountStr, 0);
+				packed_metadata = av_packet_pack_dictionary(d, &metadata_len);
+				av_dict_free(&d);
+				av_packet_add_side_data(&pkt, AV_PKT_DATA_STRINGS_METADATA,
+						packed_metadata, metadata_len);
+			}
             output_packet(of, &pkt, ost, 0);
 
             /* if two pass, output log */

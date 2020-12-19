@@ -39,3 +39,4 @@
 /tools/python/__pycache__/
 .project
 .cproject
+.settings

@@ -2234,6 +2234,14 @@ static int dash_write_packet(AVFormatContext *s, AVPacket *pkt)
         int use_rename = proto && !strcmp(proto, "file");
         if (os->segment_type == SEGMENT_TYPE_MP4)
             write_styp(os->ctx->pb);
+        int64_t pos = avio_tell(os->ctx->pb);
+        avio_wb32(os->ctx->pb, 0);
+        ffio_wfourcc(os->ctx->pb, "free");
+        ffio_wfourcc(os->ctx->pb, "ofa");
+        int64_t curpos = avio_tell(os->ctx->pb);
+		avio_seek(os->ctx->pb, pos, SEEK_SET);
+		avio_wb32(os->ctx->pb, curpos - pos); /* rewrite size */
+		avio_seek(os->ctx->pb, curpos, SEEK_SET);
         os->filename[0] = os->full_path[0] = os->temp_path[0] = '\0';
         ff_dash_fill_tmpl_params(os->filename, sizeof(os->filename),
                                  os->media_seg_name, pkt->stream_index,
