@@ -1384,13 +1384,12 @@ static void do_video_out(OutputFile *of,
 					AV_FRAME_DATA_MOTION_VECTORS);
 			if (sd) {
 				const AVMotionVector *mvs = (const AVMotionVector*) sd->data;
-				printf("\n\n mv count: %d\n\n", sd->size / sizeof(*mvs));
 				AVDictionary *d = NULL;
 				int metadata_len;
 				char *packed_metadata = NULL;
 				char mvCountStr[10];
 				sprintf(mvCountStr, "%d", sd->size / sizeof(*mvs));
-				av_dict_set(&d, "ofa", mvCountStr, 0);
+				av_dict_set(&d, "mv_count", mvCountStr, 0);
 				packed_metadata = av_packet_pack_dictionary(d, &metadata_len);
 				av_dict_free(&d);
 				av_packet_add_side_data(&pkt, AV_PKT_DATA_STRINGS_METADATA,
