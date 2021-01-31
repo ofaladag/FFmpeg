@@ -2229,14 +2229,15 @@ static int dash_write_packet(AVFormatContext *s, AVPacket *pkt)
 			    AVDictionaryEntry *mv_count_tag = av_dict_get(string_side_data_dic,"mv_count",NULL,0);
 			    av_log(s, AV_LOG_DEBUG, "Motion Vector Count %s -> %s\n",mv_count_tag->key,mv_count_tag->value);
 		        int64_t pos = avio_tell(os->ctx->pb);
+                
 		        avio_wb32(os->ctx->pb, 0);
 		        ffio_wfourcc(os->ctx->pb, "free");
-		        ffio_wfourcc(os->ctx->pb, mv_count_tag->value);
+		        avio_put_str(os->ctx->pb, mv_count_tag->value);
+
 		        int64_t curpos = avio_tell(os->ctx->pb);
 				avio_seek(os->ctx->pb, pos, SEEK_SET);
 				avio_wb32(os->ctx->pb, curpos - pos); /* rewrite size */
 				avio_seek(os->ctx->pb, curpos, SEEK_SET);
-
 			}
 		}
 

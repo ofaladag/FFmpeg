@@ -1387,8 +1387,21 @@ static void do_video_out(OutputFile *of,
 				AVDictionary *d = NULL;
 				int metadata_len;
 				char *packed_metadata = NULL;
-				char mvCountStr[10];
-				sprintf(mvCountStr, "%d", sd->size / sizeof(*mvs));
+				char mvCountStr[20];
+                int mvs_count = sd->size / sizeof(*mvs);
+                float* mvs_mag = malloc(sd->size);
+                float mvs_mag_sum = 0;
+
+                float diagonal = sqrt(pow(next_picture->width, 2) + pow(next_picture->height, 2));
+                for (i = 0; i < mvs_count; i++) {
+                    const AVMotionVector *mv = &mvs[i];
+                    mvs_mag[i] = sqrt(pow(mv->src_x - mv->dst_x, 2) + pow(mv->src_y - mv->dst_y, 2)) / diagonal;
+                    mvs_mag_sum += mvs_mag[i];
+                }
+
+				sprintf(mvCountStr, "%.6f", mvs_mag_sum / mvs_count);
+                free(mvs_mag);
+
 				av_dict_set(&d, "mv_count", mvCountStr, 0);
 				packed_metadata = av_packet_pack_dictionary(d, &metadata_len);
 				av_dict_free(&d);
