@@ -1399,7 +1399,7 @@ static void do_video_out(OutputFile *of,
                     mvs_mag_sum += mvs_mag[i];
                 }
 
-				sprintf(mvCountStr, "%.6f", mvs_mag_sum / mvs_count);
+				sprintf(mvCountStr, "%.6f_%d", mvs_mag_sum / mvs_count, ost->frame_number);
                 free(mvs_mag);
 
 				av_dict_set(&d, "mv_count", mvCountStr, 0);
