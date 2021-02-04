@@ -2145,6 +2145,33 @@ static int dash_write_packet(AVFormatContext *s, AVPacket *pkt)
         os->coding_dependency |= os->parser->pict_type != AV_PICTURE_TYPE_I;
     }
 
+    if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+		uint8_t *string_side_data = NULL;
+		int string_side_data_size;
+		string_side_data = av_packet_get_side_data(pkt,
+				AV_PKT_DATA_STRINGS_METADATA, &string_side_data_size);
+		if (string_side_data_size) {
+			AVDictionary *string_side_data_dic = NULL;
+			ret = av_packet_unpack_dictionary(string_side_data, string_side_data_size,
+					&string_side_data_dic);
+			if(ret>=0){
+			    AVDictionaryEntry *mv_count_tag = av_dict_get(string_side_data_dic,"mv_count",NULL,0);
+			    av_log(s, AV_LOG_DEBUG, "Motion Vector Count %s -> %s\n",mv_count_tag->key,mv_count_tag->value);
+		        int64_t pos = avio_tell(os->ctx->pb);
+                
+		        avio_wb32(os->ctx->pb, 0);
+		        ffio_wfourcc(os->ctx->pb, "free");
+		        avio_put_str(os->ctx->pb, mv_count_tag->value);
+
+		        int64_t curpos = avio_tell(os->ctx->pb);
+				avio_seek(os->ctx->pb, pos, SEEK_SET);
+				avio_wb32(os->ctx->pb, curpos - pos); /* rewrite size */
+				avio_seek(os->ctx->pb, curpos, SEEK_SET);
+			}
+		}
+
+	}
+
     if (pkt->flags & AV_PKT_FLAG_KEY && os->packets_written &&
         av_compare_ts(elapsed_duration, st->time_base,
                       seg_end_duration, AV_TIME_BASE_Q) >= 0) {
@@ -2215,34 +2242,6 @@ static int dash_write_packet(AVFormatContext *s, AVPacket *pkt)
         os->gop_size = os->last_duration + av_rescale_q(os->total_pkt_duration, st->time_base, AV_TIME_BASE_Q);
         c->max_gop_size = FFMAX(c->max_gop_size, os->gop_size);
     }
-
-	if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-		uint8_t *string_side_data = NULL;
-		int string_side_data_size;
-		string_side_data = av_packet_get_side_data(pkt,
-				AV_PKT_DATA_STRINGS_METADATA, &string_side_data_size);
-		if (string_side_data_size) {
-			AVDictionary *string_side_data_dic = NULL;
-			ret = av_packet_unpack_dictionary(string_side_data, string_side_data_size,
-					&string_side_data_dic);
-			if(ret>=0){
-			    AVDictionaryEntry *mv_count_tag = av_dict_get(string_side_data_dic,"mv_count",NULL,0);
-			    av_log(s, AV_LOG_DEBUG, "Motion Vector Count %s -> %s\n",mv_count_tag->key,mv_count_tag->value);
-		        int64_t pos = avio_tell(os->ctx->pb);
-                
-		        avio_wb32(os->ctx->pb, 0);
-		        ffio_wfourcc(os->ctx->pb, "free");
-		        avio_put_str(os->ctx->pb, mv_count_tag->value);
-
-		        int64_t curpos = avio_tell(os->ctx->pb);
-				avio_seek(os->ctx->pb, pos, SEEK_SET);
-				avio_wb32(os->ctx->pb, curpos - pos); /* rewrite size */
-				avio_seek(os->ctx->pb, curpos, SEEK_SET);
-			}
-		}
-
-	}
-
 
     if ((ret = ff_write_chained(os->ctx, 0, pkt, s, 0)) < 0)
         return ret;
