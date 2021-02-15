@@ -158,6 +158,10 @@ int         nb_output_files   = 0;
 FilterGraph **filtergraphs;
 int        nb_filtergraphs;
 
+// Initialize Motion Vector stats
+double mv_min = 1;
+double mv_max = 0;
+
 #if HAVE_TERMIOS_H
 
 /* init terminal so that we can grab keys */
@@ -1399,7 +1403,17 @@ static void do_video_out(OutputFile *of,
                     mvs_mag_sum += mvs_mag[i];
                 }
 
-				sprintf(mvCountStr, "%.6f_%d", mvs_mag_sum / mvs_count, ost->frame_number);
+                // mvs_mag_sum is current
+                // ost->mv_avg_sum / ost->frame_number is baseline
+                double mv = mvs_mag_sum / mvs_count;
+                if (mv < mv_min) mv_min = mv;
+                if (mv > mv_max) mv_max = mv;
+
+                double relative = 0;
+                if (mv_max - mv_min > 0)
+                    relative = (mv - (mv_min)) / (mv_max - mv_min);
+
+				sprintf(mvCountStr, "%.6f_%d", 1 - relative, ost->frame_number);
                 free(mvs_mag);
 
 				av_dict_set(&d, "mv_count", mvCountStr, 0);
