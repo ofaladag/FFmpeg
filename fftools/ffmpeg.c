@@ -162,6 +162,12 @@ int        nb_filtergraphs;
 double mv_min = 1;
 double mv_max = 0;
 
+double total_mv_sum = 0;
+int total_mv_count = 0;
+
+int total_true=0;
+int total_false =0 ;
+
 #if HAVE_TERMIOS_H
 
 /* init terminal so that we can grab keys */
@@ -1406,14 +1412,27 @@ static void do_video_out(OutputFile *of,
                 // mvs_mag_sum is current
                 // ost->mv_avg_sum / ost->frame_number is baseline
                 double mv = mvs_mag_sum / mvs_count;
+                total_mv_count++;
+                total_mv_sum += mv;
+
+                int tf = 0;
+                if(mv>=(total_mv_sum/total_mv_count)){
+                    total_true ++;
+                    tf = 1;
+                }else{
+                    tf = 0 ;
+                    total_false ++;
+                }
+
+/*
                 if (mv < mv_min) mv_min = mv;
                 if (mv > mv_max) mv_max = mv;
 
                 double relative = 0;
                 if (mv_max - mv_min > 0)
                     relative = (mv - (mv_min)) / (mv_max - mv_min);
-
-				sprintf(mvCountStr, "%.6f_%d", 1 - relative, ost->frame_number);
+*/
+				sprintf(mvCountStr, "%d_%d",tf, ost->frame_number);
                 free(mvs_mag);
 
 				av_dict_set(&d, "mv_count", mvCountStr, 0);
